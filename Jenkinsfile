@@ -58,6 +58,7 @@ pipeline {
               --data /var/lib/jenkins/dependency-check-data \
               --nvdApiKey "${NVD_API_KEY}" \
               --nvdApiDelay 4000 \
+              --disableAssembly \
               --format HTML \
               --format XML \
               --out .
