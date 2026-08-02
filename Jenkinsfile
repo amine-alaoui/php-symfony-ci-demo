@@ -95,6 +95,7 @@ pipeline {
             artifact: 'bom.xml',
             projectName: 'php-symfony-ci-demo',
             projectVersion: "${PROJECT_VERSION}",
+            autoCreateProjects: true,
             synchronous: false,
             dependencyTrackApiKey: DTRACK_API_KEY,
             dependencyTrackFrontendUrl: DTRACK_URL
