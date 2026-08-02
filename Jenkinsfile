@@ -54,6 +54,7 @@ pipeline {
           dependency-check \
             --project php-symfony-ci-demo \
             --scan . \
+            --data /var/lib/jenkins/dependency-check-data \
             --format HTML \
             --format XML \
             --out .
