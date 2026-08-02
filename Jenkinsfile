@@ -13,7 +13,7 @@ pipeline {
     CONFIG_REPO_URL = "https://github.com/amine-alaoui/php-symfony-ci-demo-config.git"
     PHP_APP_HOST = "10.249.0.35"
     PHP_APP_SSH_USER = "root"
-    DEPLOY_SSH_CREDENTIALS_ID = "git-credentials"
+    DEPLOY_SSH_CREDENTIALS_ID = "ansible-ssh-key"
   }
 
   stages {
