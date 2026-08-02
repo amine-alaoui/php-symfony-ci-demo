@@ -12,6 +12,9 @@ final class GreetingService
             $cleanName = 'World';
         }
 
-        return sprintf('Hello %s from Symfony CI', $cleanName);
+        $environment = getenv('APP_ENV') ?: 'unknown';
+        $welcomeMessage = getenv('APP_WELCOME_MESSAGE') ?: 'Hello from Symfony CI';
+
+        return sprintf('%s - %s environment - Hello %s', $welcomeMessage, $environment, $cleanName);
     }
 }

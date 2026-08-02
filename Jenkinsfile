@@ -115,13 +115,16 @@ pipeline {
     stage('Package') {
       steps {
         sh '''
+          composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-progress
+
           mkdir -p build
           tar -czf build/php-symfony-ci-demo-${PROJECT_VERSION}.tar.gz \
             composer.json \
             composer.lock \
             config \
             public \
-            src
+            src \
+            vendor
         '''
         archiveArtifacts artifacts: 'build/*.tar.gz', fingerprint: true
       }

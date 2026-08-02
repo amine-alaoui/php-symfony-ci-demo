@@ -9,15 +9,21 @@ final class GreetingServiceTest extends TestCase
 {
     public function testMessageUsesGivenName(): void
     {
+        putenv('APP_ENV=dev');
+        putenv('APP_WELCOME_MESSAGE=Bienvenue sur DEV');
+
         $service = new GreetingService();
 
-        self::assertSame('Hello DevSecOps from Symfony CI', $service->message('DevSecOps'));
+        self::assertSame('Bienvenue sur DEV - dev environment - Hello DevSecOps', $service->message('DevSecOps'));
     }
 
     public function testMessageFallsBackToWorld(): void
     {
+        putenv('APP_ENV');
+        putenv('APP_WELCOME_MESSAGE');
+
         $service = new GreetingService();
 
-        self::assertSame('Hello World from Symfony CI', $service->message('   '));
+        self::assertSame('Hello from Symfony CI - unknown environment - Hello World', $service->message('   '));
     }
 }
