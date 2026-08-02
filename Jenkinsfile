@@ -10,7 +10,7 @@ pipeline {
   environment {
     PROJECT_VERSION = "1.0.${BUILD_NUMBER}"
     ANSIBLE_REPO_URL = "https://github.com/amine-alaoui/ansible-devsecops-platform.git"
-    CONFIG_REPO_URL = "git@github.com:amine-alaoui/php-symfony-ci-demo-config.git"
+    CONFIG_REPO_URL = "https://github.com/amine-alaoui/php-symfony-ci-demo-config.git"
     PHP_APP_HOST = "10.249.0.35"
     PHP_APP_SSH_USER = "root"
   }
@@ -129,7 +129,7 @@ pipeline {
       when {
         anyOf {
           branch 'dev'
-          branch 'rct'
+          branch 'staging'
           branch 'main'
           branch 'master'
         }
@@ -149,17 +149,35 @@ pipeline {
       when {
         anyOf {
           branch 'dev'
-          branch 'rct'
+          branch 'staging'
+          branch 'main'
+          branch 'master'
         }
       }
       steps {
         script {
-          def deployEnv = env.BRANCH_NAME == 'rct' ? 'rct' : 'dev'
+          def deployEnvByBranch = [
+            dev: 'dev',
+            staging: 'staging',
+            main: 'prod',
+            master: 'prod'
+          ]
+          def deployEnv = deployEnvByBranch[env.BRANCH_NAME]
+
+          if (env.BRANCH_NAME == 'staging' || env.BRANCH_NAME == 'main' || env.BRANCH_NAME == 'master') {
+            input message: "Deploy ${PROJECT_VERSION} to ${deployEnv}?", ok: 'Deploy'
+          }
 
           dir('ansible-devsecops-platform') {
             git branch: 'main',
               credentialsId: 'git-credentials',
               url: "${ANSIBLE_REPO_URL}"
+
+            dir('php-symfony-ci-demo-config') {
+              git branch: 'main',
+                credentialsId: 'git-credentials',
+                url: "${CONFIG_REPO_URL}"
+            }
 
             sh 'mkdir -p .jenkins'
             writeFile file: '.jenkins/apps-inventory.yml', text: """
@@ -179,7 +197,7 @@ pipeline {
                 ---
                 php_symfony_app_version: "${PROJECT_VERSION}"
                 php_symfony_app_config_env: "${deployEnv}"
-                php_symfony_app_config_repo: "${CONFIG_REPO_URL}"
+                php_symfony_app_config_local_source: "${pwd()}/php-symfony-ci-demo-config/${deployEnv}/app.env"
                 php_symfony_app_nexus_url: "${NEXUS_URL}"
                 php_symfony_app_nexus_repository: "${NEXUS_REPOSITORY}"
                 php_symfony_app_nexus_username: "${NEXUS_USER}"
