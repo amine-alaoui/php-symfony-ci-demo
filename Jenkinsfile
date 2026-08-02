@@ -140,12 +140,23 @@ pipeline {
         }
       }
       steps {
-        withCredentials([usernamePassword(credentialsId: 'nexus-credentials', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASSWORD')]) {
-          sh '''
-            curl -f -u "${NEXUS_USER}:${NEXUS_PASSWORD}" \
-              --upload-file build/php-symfony-ci-demo-${PROJECT_VERSION}.tar.gz \
-              "${NEXUS_URL}/repository/${NEXUS_REPOSITORY}/php-symfony-ci-demo-${PROJECT_VERSION}.tar.gz"
-          '''
+        script {
+          def nexusRepositoryByBranch = [
+            dev: 'php-dev',
+            staging: 'php-staging',
+            main: 'php-releases',
+            master: 'php-releases'
+          ]
+
+          withEnv(["TARGET_NEXUS_REPOSITORY=${nexusRepositoryByBranch[env.BRANCH_NAME]}"]) {
+            withCredentials([usernamePassword(credentialsId: 'nexus-credentials', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASSWORD')]) {
+              sh '''
+                curl -f -u "${NEXUS_USER}:${NEXUS_PASSWORD}" \
+                  --upload-file build/php-symfony-ci-demo-${PROJECT_VERSION}.tar.gz \
+                  "${NEXUS_URL}/repository/${TARGET_NEXUS_REPOSITORY}/php-symfony-ci-demo-${PROJECT_VERSION}.tar.gz"
+              '''
+            }
+          }
         }
       }
     }
@@ -167,7 +178,14 @@ pipeline {
             main: 'prod',
             master: 'prod'
           ]
+          def nexusRepositoryByBranch = [
+            dev: 'php-dev',
+            staging: 'php-staging',
+            main: 'php-releases',
+            master: 'php-releases'
+          ]
           def deployEnv = deployEnvByBranch[env.BRANCH_NAME]
+          def deployNexusRepository = nexusRepositoryByBranch[env.BRANCH_NAME]
 
           if (env.BRANCH_NAME == 'staging' || env.BRANCH_NAME == 'main' || env.BRANCH_NAME == 'master') {
             input message: "Deploy ${PROJECT_VERSION} to ${deployEnv}?", ok: 'Deploy'
@@ -204,7 +222,7 @@ pipeline {
                 php_symfony_app_config_env: "${deployEnv}"
                 php_symfony_app_config_local_source: "${pwd()}/php-symfony-ci-demo-config/${deployEnv}/app.env"
                 php_symfony_app_nexus_url: "${NEXUS_URL}"
-                php_symfony_app_nexus_repository: "${NEXUS_REPOSITORY}"
+                php_symfony_app_nexus_repository: "${deployNexusRepository}"
                 php_symfony_app_nexus_username: "${NEXUS_USER}"
                 php_symfony_app_nexus_password: "${NEXUS_PASSWORD}"
               """.stripIndent()
