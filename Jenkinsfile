@@ -7,16 +7,7 @@ pipeline {
     disableConcurrentBuilds()
   }
 
-  parameters {
-    string(name: 'DEVSECOPS_HOST', defaultValue: 'CHANGE_ME_VM_IP_OR_DNS', description: 'IP or DNS of the DevSecOps VM')
-  }
-
   environment {
-    DEVSECOPS_HOST = "${params.DEVSECOPS_HOST}"
-    SONAR_HOST_URL = "http://${DEVSECOPS_HOST}:9000"
-    DTRACK_URL = "http://${DEVSECOPS_HOST}:8081"
-    NEXUS_URL = "http://${DEVSECOPS_HOST}:8082"
-    NEXUS_REPOSITORY = 'php-releases'
     PROJECT_VERSION = "1.0.${BUILD_NUMBER}"
   }
 
