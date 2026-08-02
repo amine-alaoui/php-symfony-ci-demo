@@ -13,6 +13,7 @@ pipeline {
     CONFIG_REPO_URL = "https://github.com/amine-alaoui/php-symfony-ci-demo-config.git"
     PHP_APP_HOST = "10.249.0.35"
     PHP_APP_SSH_USER = "root"
+    DEPLOY_SSH_CREDENTIALS_ID = "git-credentials"
   }
 
   stages {
@@ -186,10 +187,10 @@ pipeline {
                 children:
                   apps_server:
                     hosts:
-                      php_app:
-                        ansible_host: "${PHP_APP_HOST}"
-                        ansible_user: "${PHP_APP_SSH_USER}"
-                        ansible_python_interpreter: /usr/local/bin/ansible-python
+                        php_app:
+                          ansible_host: "${PHP_APP_HOST}"
+                          ansible_user: "${PHP_APP_SSH_USER}"
+                          ansible_python_interpreter: /usr/local/bin/ansible-python
             """.stripIndent()
 
             withCredentials([usernamePassword(credentialsId: 'nexus-credentials', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASSWORD')]) {
@@ -204,7 +205,7 @@ pipeline {
                 php_symfony_app_nexus_password: "${NEXUS_PASSWORD}"
               """.stripIndent()
 
-              sshagent(credentials: ['ansible-ssh-key']) {
+              sshagent(credentials: ["${DEPLOY_SSH_CREDENTIALS_ID}"]) {
                 sh '''
                   chmod 600 .jenkins/deploy-vars.yml
                   trap 'rm -f .jenkins/deploy-vars.yml' EXIT
