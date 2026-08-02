@@ -14,6 +14,7 @@ pipeline {
     PHP_APP_HOST = "10.249.0.35"
     PHP_APP_SSH_USER = "root"
     DEPLOY_SSH_CREDENTIALS_ID = "ansible-ssh-key"
+    ANSIBLE_VAULT_PASSWORD_FILE = "/var/lib/jenkins/.ansible/vault-pass"
   }
 
   stages {
@@ -213,6 +214,7 @@ pipeline {
                   ansible-playbook \
                     -i .jenkins/apps-inventory.yml \
                     playbooks/deploy/php-symfony-ci-demo.yml \
+                    --vault-password-file "${ANSIBLE_VAULT_PASSWORD_FILE}" \
                     -e @.jenkins/deploy-vars.yml
                 '''
               }
