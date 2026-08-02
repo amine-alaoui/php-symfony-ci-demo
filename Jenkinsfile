@@ -50,15 +50,19 @@ pipeline {
 
     stage('Dependency-Check') {
       steps {
-        sh '''
-          dependency-check \
-            --project php-symfony-ci-demo \
-            --scan . \
-            --data /var/lib/jenkins/dependency-check-data \
-            --format HTML \
-            --format XML \
-            --out .
-        '''
+        withCredentials([string(credentialsId: 'nvd-api-key', variable: 'NVD_API_KEY')]) {
+          sh '''
+            dependency-check \
+              --project php-symfony-ci-demo \
+              --scan . \
+              --data /var/lib/jenkins/dependency-check-data \
+              --nvdApiKey "${NVD_API_KEY}" \
+              --nvdApiDelay 4000 \
+              --format HTML \
+              --format XML \
+              --out .
+          '''
+        }
         publishHTML([
           allowMissing: true,
           alwaysLinkToLastBuild: true,
