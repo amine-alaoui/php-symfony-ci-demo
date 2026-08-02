@@ -99,6 +99,7 @@ pipeline {
             autoCreateProjects: true,
             synchronous: false,
             dependencyTrackApiKey: DTRACK_API_KEY,
+            dependencyTrackUrl: DTRACK_URL,
             dependencyTrackFrontendUrl: DTRACK_URL
           )
         }
