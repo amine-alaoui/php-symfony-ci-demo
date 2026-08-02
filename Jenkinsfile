@@ -9,6 +9,10 @@ pipeline {
 
   environment {
     PROJECT_VERSION = "1.0.${BUILD_NUMBER}"
+    ANSIBLE_REPO_URL = "https://github.com/amine-alaoui/ansible-devsecops-platform.git"
+    CONFIG_REPO_URL = "git@github.com:amine-alaoui/php-symfony-ci-demo-config.git"
+    PHP_APP_HOST = "10.249.0.35"
+    PHP_APP_SSH_USER = "root"
   }
 
   stages {
@@ -110,7 +114,12 @@ pipeline {
       steps {
         sh '''
           mkdir -p build
-          tar --exclude=.git --exclude=vendor --exclude=var/cache -czf build/php-symfony-ci-demo-${PROJECT_VERSION}.tar.gz .
+          tar -czf build/php-symfony-ci-demo-${PROJECT_VERSION}.tar.gz \
+            composer.json \
+            composer.lock \
+            config \
+            public \
+            src
         '''
         archiveArtifacts artifacts: 'build/*.tar.gz', fingerprint: true
       }
@@ -118,7 +127,12 @@ pipeline {
 
     stage('Publish Nexus') {
       when {
-        branch 'main'
+        anyOf {
+          branch 'dev'
+          branch 'rct'
+          branch 'main'
+          branch 'master'
+        }
       }
       steps {
         withCredentials([usernamePassword(credentialsId: 'nexus-credentials', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASSWORD')]) {
@@ -127,6 +141,64 @@ pipeline {
               --upload-file build/php-symfony-ci-demo-${PROJECT_VERSION}.tar.gz \
               "${NEXUS_URL}/repository/${NEXUS_REPOSITORY}/php-symfony-ci-demo-${PROJECT_VERSION}.tar.gz"
           '''
+        }
+      }
+    }
+
+    stage('Deploy') {
+      when {
+        anyOf {
+          branch 'dev'
+          branch 'rct'
+        }
+      }
+      steps {
+        script {
+          def deployEnv = env.BRANCH_NAME == 'rct' ? 'rct' : 'dev'
+
+          dir('ansible-devsecops-platform') {
+            git branch: 'main',
+              credentialsId: 'git-credentials',
+              url: "${ANSIBLE_REPO_URL}"
+
+            sh 'mkdir -p .jenkins'
+            writeFile file: '.jenkins/apps-inventory.yml', text: """
+              ---
+              all:
+                children:
+                  apps_server:
+                    hosts:
+                      php_app:
+                        ansible_host: "${PHP_APP_HOST}"
+                        ansible_user: "${PHP_APP_SSH_USER}"
+                        ansible_python_interpreter: /usr/local/bin/ansible-python
+            """.stripIndent()
+
+            withCredentials([usernamePassword(credentialsId: 'nexus-credentials', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASSWORD')]) {
+              writeFile file: '.jenkins/deploy-vars.yml', text: """
+                ---
+                php_symfony_app_version: "${PROJECT_VERSION}"
+                php_symfony_app_config_env: "${deployEnv}"
+                php_symfony_app_config_repo: "${CONFIG_REPO_URL}"
+                php_symfony_app_nexus_url: "${NEXUS_URL}"
+                php_symfony_app_nexus_repository: "${NEXUS_REPOSITORY}"
+                php_symfony_app_nexus_username: "${NEXUS_USER}"
+                php_symfony_app_nexus_password: "${NEXUS_PASSWORD}"
+              """.stripIndent()
+
+              sshagent(credentials: ['ansible-ssh-key']) {
+                sh '''
+                  chmod 600 .jenkins/deploy-vars.yml
+                  trap 'rm -f .jenkins/deploy-vars.yml' EXIT
+
+                  ansible-playbook \
+                    -i .jenkins/apps-inventory.yml \
+                    playbooks/deploy/php-symfony-ci-demo.yml \
+                    -e @.jenkins/deploy-vars.yml
+                '''
+              }
+            }
+          }
         }
       }
     }
